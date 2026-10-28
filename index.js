@@ -38,8 +38,19 @@ passport.use(new GoogleStrategy({
     }
 }));
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user, done) => done(null, user));
+passport.serializeUser((user, done) => done(null, user._id));
+
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await User.findById(id);
+        done(null, user);
+    } catch (error) {
+        done(error, null);
+    }
+});
+
+//passport.deserializeUser((user, done) => done(null, user));
+
 
 app.get("/auth/google", passport.authenticate("google", {
     scope: ["profile", "email"]
@@ -54,6 +65,19 @@ app.get("/logout", (req, res) => {
     req.logout(() => res.redirect("/"));
 });
 
+
+
+app.get("/api/me", (req, res) => {
+    if (req.isAuthenticated()) {
+        return res.json({
+            loggedIn: true,
+            email: req.user.email,
+            name: req.user.name,
+            role: req.user.role
+        });
+    }
+    res.json({ loggedIn: false });
+});
 
 //getting the connection to the database:
 mongoose.connect(process.env.MONGO_URI)
